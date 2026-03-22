@@ -1,23 +1,23 @@
 /* ============================================
-   SpiceRoute - Customer Menu Page
-   Shows restaurant menu with:
-   - Live Kitchen Pulse (workload indicator)
-   - Category filter tabs
-   - Smart badges (QUICK PREP, HIGH WAIT, LOCKED)
-   - Add to cart functionality
+   SpiceRoute - Customer Menu Page (v2)
+   Live socket sync: joins table room, listens
+   for menu_update events from manager. Shows
+   a toast refresh notification. No static data.
    ============================================ */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useSocket } from '../../context/SocketContext';
 import API from '../../api/axios';
 import { MdRestaurantMenu, MdSearch, MdShoppingCart, MdLocationSearching } from 'react-icons/md';
-import { FiPlus, FiMinus, FiClock } from 'react-icons/fi';
+import { FiPlus, FiMinus, FiClock, FiRefreshCw } from 'react-icons/fi';
 
 export default function Menu() {
   const { restaurantId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { socket } = useSocket();
 
   const [menuItems, setMenuItems] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
@@ -26,40 +26,73 @@ export default function Menu() {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [loading, setLoading] = useState(true);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [menuUpdateToast, setMenuUpdateToast] = useState(false);
+  const toastTimeout = useRef(null);
 
   const table = searchParams.get('table') || 1;
 
-  // Fetch menu data from API
+  const fetchMenu = async () => {
+    try {
+      const { data } = await API.get(`/menu/${restaurantId}`, {
+        params: { category: activeCategory !== 'All Items' ? activeCategory : undefined }
+      });
+      setMenuItems(data.menuItems);
+      setRestaurant(data.restaurant);
+      setWorkload(data.workload);
+      setWaitTime(data.waitTime);
+      setCategories(data.categories);
+      cart.setRestaurantId(restaurantId);
+      cart.setTableNumber(parseInt(table));
+    } catch (err) {
+      console.error('Menu fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch + 30s polling
   useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const { data } = await API.get(`/menu/${restaurantId}`, {
-          params: { category: activeCategory !== 'All Items' ? activeCategory : undefined }
-        });
-        setMenuItems(data.menuItems);
-        setRestaurant(data.restaurant);
-        setWorkload(data.workload);
-        setWaitTime(data.waitTime);
-        setCategories(data.categories);
-        cart.setRestaurantId(restaurantId);
-        cart.setTableNumber(parseInt(table));
-      } catch (err) {
-        // Use demo data if API unavailable
-        setRestaurant({ name: 'Royal Indian Cuisine', currency: '₹' });
-        setWorkload({ loadLevel: 'moderate', loadPercentage: 65, activeOrders: 8 });
-        setWaitTime({ range: '12-18', loadLevel: 'moderate' });
-        setCategories(['All Items', 'Quick Prep', 'Breakfast', 'Main Course', 'Beverages', 'Desserts']);
-        setMenuItems(getDemoItems());
-      } finally { setLoading(false); }
-    };
     fetchMenu();
-    const interval = setInterval(fetchMenu, 30000); // Refresh every 30s
+    const interval = setInterval(fetchMenu, 30000);
     return () => clearInterval(interval);
   }, [restaurantId, activeCategory]);
 
-  // Get load color based on level
+  // Socket: join table room and listen for live menu updates
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    socket.emit('joinRestaurant', restaurantId);
+    socket.emit('join_table', { restaurantId, tableNumber: parseInt(table) });
+
+    const handleMenuUpdate = () => {
+      // Re-fetch menu silently, then show toast
+      fetchMenu();
+      setMenuUpdateToast(true);
+      clearTimeout(toastTimeout.current);
+      toastTimeout.current = setTimeout(() => setMenuUpdateToast(false), 4000);
+    };
+
+    const handleWorkloadSync = (data) => {
+      if (data.restaurantId?.toString() === restaurantId) {
+        setWorkload(prev => ({
+          ...prev,
+          loadLevel: data.loadLevel,
+          loadPercentage: data.loadPercentage,
+          activeOrders: data.activeOrders
+        }));
+      }
+    };
+
+    socket.on('menu_update', handleMenuUpdate);
+    socket.on('workload_sync', handleWorkloadSync);
+
+    return () => {
+      socket.off('menu_update', handleMenuUpdate);
+      socket.off('workload_sync', handleWorkloadSync);
+    };
+  }, [socket, restaurantId, table]);
+
   const getLoadColor = (level) => {
     switch(level) {
       case 'low': return '#22C55E';
@@ -90,6 +123,18 @@ export default function Menu() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 80 }}>
+      {/* Live Menu Update Toast */}
+      {menuUpdateToast && (
+        <div style={{
+          position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+          borderRadius: 10, padding: '10px 18px', display: 'flex', alignItems: 'center',
+          gap: 8, zIndex: 9999, backdropFilter: 'blur(10px)', color: '#4ade80', fontSize: '0.85rem', fontWeight: 500
+        }}>
+          <FiRefreshCw size={14} /> Menu updated by the restaurant!
+        </div>
+      )}
+
       {/* Header */}
       <header style={styles.header}>
         <button style={styles.menuBtn}>☰</button>
@@ -108,11 +153,11 @@ export default function Menu() {
               <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: 4 }}>{getLoadLabel(workload.loadLevel)}</div>
             </div>
             <div style={{ ...styles.loadCircle, borderColor: getLoadColor(workload.loadLevel) }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{workload.loadPercentage || 65}%</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{workload.loadPercentage || 0}%</span>
             </div>
           </div>
           <div className="progress-bar" style={{ marginTop: 10 }}>
-            <div className="progress-fill" style={{ width: `${workload.loadPercentage || 65}%`, background: `linear-gradient(90deg, ${getLoadColor(workload.loadLevel)}88, ${getLoadColor(workload.loadLevel)})` }} />
+            <div className="progress-fill" style={{ width: `${workload.loadPercentage || 0}%`, background: `linear-gradient(90deg, ${getLoadColor(workload.loadLevel)}88, ${getLoadColor(workload.loadLevel)})` }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#A89B8C', fontSize: '0.8rem' }}>
             <FiClock size={13} /> Estimated prep: {waitTime.range || '12-18'} mins
@@ -141,7 +186,12 @@ export default function Menu() {
 
       {/* Menu Items List */}
       <div style={{ padding: '8px 16px' }}>
-        {filteredItems.map((item, idx) => (
+        {filteredItems.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#6B5E50' }}>
+            <p style={{ fontSize: '2rem' }}>🍽️</p>
+            <p>No items available in this category</p>
+          </div>
+        ) : filteredItems.map((item, idx) => (
           <div key={item._id || idx} className="animate-fade" style={{ ...styles.menuItem, animationDelay: `${idx * 0.05}s` }}>
             <div style={styles.menuItemImage}>
               {item.image ? (
@@ -206,18 +256,6 @@ export default function Menu() {
       </nav>
     </div>
   );
-}
-
-/* Demo items when API unavailable */
-function getDemoItems() {
-  return [
-    { _id: '1', name: 'Medhu Vada (2 pcs)', description: 'Crispy lentil donuts served with sambar', price: 40, image: 'https://images.unsplash.com/photo-1630383249896-424e482df921?w=400', category: 'Breakfast', isQuickPrep: true, isBestseller: true, isVeg: true },
-    { _id: '2', name: 'Steamed Idli', description: 'Fluffy rice cakes with coconut chutney', price: 30, image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400', category: 'Breakfast', isQuickPrep: true, isBestseller: true, isVeg: true },
-    { _id: '3', name: 'Paneer Butter Masala', description: 'Cottage cheese in rich tomato gravy', price: 160, image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400', category: 'Main Course', prepTimeLabel: '15 min prep', isVeg: true },
-    { _id: '4', name: 'Maharaja Special Thali', description: 'Full platter with 12 traditional items', price: 180, image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400', category: 'Specials', badge: 'HIGH WAIT', isLocked: false, isVeg: true },
-    { _id: '5', name: 'Biryani (Chicken)', description: 'Slow-cooked aromatic basmati rice', price: 180, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400', category: 'Specials', badge: 'HIGH WAIT', isVeg: false },
-    { _id: '6', name: 'Filter Coffee', description: 'Traditional South Indian filter coffee', price: 20, image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400', category: 'Beverages', isQuickPrep: true, isVeg: true },
-  ];
 }
 
 const styles = {

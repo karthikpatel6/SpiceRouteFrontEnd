@@ -36,7 +36,22 @@ export default function Cart() {
       // Demo mode: simulate order placement
       const fakeToken = `%23A-${Math.floor(Math.random() * 900) + 100}`;
       cart.clearCart();
-      navigate(`/track/${fakeToken}`);
+      navigate(`/track/${fakeToken}`, { 
+        state: { 
+          order: {
+            tokenNumber: decodeURIComponent(fakeToken),
+            status: 'placed',
+            items: cart.items,
+            subtotal: cart.subtotal,
+            tax: tax,
+            total: total,
+            placedAt: new Date().toISOString(),
+            estimatedWaitTime: 12,
+            kitchenProgress: 0,
+            kitchenNote: 'Order received, waiting for kitchen confirmation'
+          }
+        } 
+      });
     } finally { setPlacing(false); }
   };
 

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
+import { QRCodeSVG } from 'qrcode.react';
 import { FiGrid, FiMenu, FiBarChart2, FiActivity, FiLogOut, FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { MdRestaurantMenu } from 'react-icons/md';
 
@@ -16,6 +17,57 @@ export default function MenuManagement() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [showQR, setShowQR] = useState(false);
+
+  // CRUD State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '', price: '', category: 'Main Course', prepTime: 10, complexity: 'MEDIUM', isQuickPrep: false, isAvailable: true
+  });
+
+  const handleOpenModal = (item = null) => {
+    if (item) {
+      setEditItem(item);
+      setFormData({
+        name: item.name, price: item.price, category: item.category, prepTime: item.prepTime,
+        complexity: item.complexity, isQuickPrep: item.isQuickPrep, isAvailable: item.isAvailable
+      });
+    } else {
+      setEditItem(null);
+      setFormData({
+        name: '', price: '', category: 'Main Course', prepTime: 10, complexity: 'MEDIUM', isQuickPrep: false, isAvailable: true
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      if (editItem) {
+        const { data } = await API.put(`/menu/${editItem._id}`, formData);
+        setItems(prev => prev.map(i => i._id === editItem._id ? data.menuItem : i));
+      } else {
+        const { data } = await API.post('/menu', formData);
+        setItems(prev => [...prev, data.menuItem]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error saving menu item');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      await API.delete(`/menu/${id}`);
+      setItems(prev => prev.filter(i => i._id !== id));
+    } catch (err) {
+      alert('Error deleting menu item');
+    }
+  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -68,7 +120,10 @@ export default function MenuManagement() {
       <main style={{ flex: 1, padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.5rem', fontWeight: 800 }}>Menu Management</h1>
-          <button className="btn btn-primary btn-sm"><FiPlus /> Add Item</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowQR(true)}>Print QR</button>
+            <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal()}><FiPlus /> Add Item</button>
+          </div>
         </div>
 
         {/* Category Filter */}
@@ -94,12 +149,57 @@ export default function MenuManagement() {
                   <td>
                     <label className="toggle"><input type="checkbox" checked={item.isAvailable} onChange={() => toggleAvailability(item._id)} /><span className="toggle-slider" /></label>
                   </td>
-                  <td><div style={{ display: 'flex', gap: 8 }}><button style={{ background: 'none', border: 'none', color: '#A89B8C', cursor: 'pointer' }}><FiEdit size={15} /></button><button style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><FiTrash2 size={15} /></button></div></td>
+                  <td><div style={{ display: 'flex', gap: 8 }}><button onClick={() => handleOpenModal(item)} style={{ background: 'none', border: 'none', color: '#A89B8C', cursor: 'pointer' }}><FiEdit size={15} /></button><button onClick={() => handleDelete(item._id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><FiTrash2 size={15} /></button></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* QR Modal */}
+        {showQR && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div className="card" style={{ padding: 40, textAlign: 'center', background: '#1a1208', border: '1px solid #E8A317' }}>
+              <h2 style={{ marginBottom: 20 }}>Customer Menu QR</h2>
+              <div style={{ background: 'white', padding: 20, borderRadius: 10, display: 'inline-block' }}>
+                <QRCodeSVG value={`${window.location.origin}/menu/${user?.restaurant}?table=1`} size={200} />
+              </div>
+              <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button className="btn btn-secondary" onClick={() => window.print()}>Print</button>
+                <button className="btn btn-danger" onClick={() => setShowQR(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Item Form Modal */}
+        {isModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div className="card" style={{ width: 400, background: '#1a1208', border: '1px solid #E8A317' }}>
+              <h2 style={{ marginBottom: 20 }}>{editItem ? 'Edit Item' : 'Add New Item'}</h2>
+              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                <input required placeholder="Item Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <input required type="number" placeholder="Price" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                  <input required type="number" placeholder="Prep Time (m)" value={formData.prepTime} onChange={e => setFormData({...formData, prepTime: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                </div>
+                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
+                  <option>Breakfast</option><option>Main Course</option><option>Beverages</option><option>Desserts</option><option>Starters</option><option>Specials</option>
+                </select>
+                <select value={formData.complexity} onChange={e => setFormData({...formData, complexity: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
+                  <option value="LOW">Low Complexity</option><option value="MEDIUM">Medium Complexity</option><option value="HIGH">High Complexity</option>
+                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={formData.isQuickPrep} onChange={e => setFormData({...formData, isQuickPrep: e.target.checked})} /> Quick Prep Item
+                </label>
+                <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary">Save Item</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
