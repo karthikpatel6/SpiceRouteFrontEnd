@@ -158,6 +158,7 @@ export default function ManagerDashboard() {
 
   const navItems = [
     { icon: <FiGrid />, label: 'Dashboard', key: 'dashboard' },
+    { icon: <FiClock />, label: 'Live Orders', key: 'orders' },
     { icon: <FiMessageSquare />, label: 'Global Log', key: 'log' },
     { icon: <FiMenu />, label: 'Menu Mgmt', path: '/manager/menu' },
     { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
@@ -296,6 +297,47 @@ export default function ManagerDashboard() {
                 </div>
               )}
             </>
+          )}
+
+          {/* LIVE ORDERS VIEW (READ-ONLY KDS) */}
+          {activeView === 'orders' && (
+            <div className="animate-fade">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div>
+                  <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 800 }}>Live Orders</h1>
+                  <p style={{ color: '#6B5E50', fontSize: '0.82rem' }}>Monitoring kitchen queue in real-time (Read-Only).</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                {kdsOrders.length === 0 ? (
+                  <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: '#6B5E50' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 10 }}>🍳</div>
+                    <p>No active orders in the kitchen.</p>
+                  </div>
+                ) : kdsOrders.map(order => (
+                  <div key={order._id} className="card order-card" style={{ borderLeft: `4px solid ${statusColor(order.status)}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#E8A317' }}>#{order.tokenNumber}</span>
+                      <span className="badge" style={{ background: statusColor(order.status) + '22', color: statusColor(order.status), border: `1px solid ${statusColor(order.status)}33` }}>
+                        {order.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      {order.items?.map((it, idx) => (
+                        <div key={idx} style={{ fontSize: '0.88rem', color: '#F5F0E8', marginBottom: 4 }}>
+                          <span style={{ color: '#E8A317', fontWeight: 600 }}>{it.quantity}x</span> {it.name}
+                        </div>
+                      ))}
+                    </div>
+                    {/* NO ACTION BUTTONS FOR MANAGER */}
+                    <div style={{ fontSize: '0.72rem', color: '#6B5E50', paddingTop: 10, borderTop: '1px solid rgba(232,163,23,0.08)', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Placed {order.minutesAgo || 0}m ago</span>
+                      <span>Table {order.tableNumber || 'N/A'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* GLOBAL LOG VIEW */}

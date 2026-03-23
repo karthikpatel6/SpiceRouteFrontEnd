@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import API from '../../api/axios';
-import { FiSearch, FiBell, FiSettings, FiUser, FiClock, FiPrinter, FiSend, FiAlertTriangle } from 'react-icons/fi';
+import { FiSearch, FiBell, FiSettings, FiUser, FiClock, FiPrinter, FiSend, FiAlertTriangle, FiMessageSquare, FiX } from 'react-icons/fi';
 import { MdRestaurantMenu, MdPause } from 'react-icons/md';
 
 export default function KitchenDashboard() {
@@ -32,7 +32,12 @@ export default function KitchenDashboard() {
   const [managerAlertMsg, setManagerAlertMsg] = useState('');
   const [managerNotif, setManagerNotif] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [showIntercom, setShowIntercom] = useState(false);
+  const [intercomMsgs, setIntercomMsgs] = useState([]);
+  const [intercomLoading, setIntercomLoading] = useState(false);
+  const [newIntercomMsg, setNewIntercomMsg] = useState('');
   const notifTimeout = useRef(null);
+  const chatEndRef = useRef(null);
 
   // Clock (Keep for internal logic if needed, but UI will remove it)
   useEffect(() => {
@@ -57,6 +62,24 @@ export default function KitchenDashboard() {
     };
     fetchOrders();
   }, [user]);
+
+  // Fetch Intercom history
+  useEffect(() => {
+    if (!showIntercom || !user?.restaurant) return;
+    const fetchHistory = async () => {
+      setIntercomLoading(true);
+      try {
+        const { data } = await API.get(`/comms/${user.restaurant}`);
+        setIntercomMsgs(data.comms || []);
+      } catch (err) { console.error('Intercom fetch error:', err); }
+      finally { setIntercomLoading(false); }
+    };
+    fetchHistory();
+  }, [showIntercom, user]);
+
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [intercomMsgs, showIntercom]);
 
   // Socket event listeners
   useEffect(() => {
@@ -110,21 +133,36 @@ export default function KitchenDashboard() {
 
     // Manager reply
     const handleManagerReply = (data) => {
-      setManagerNotif(data.message);
-      clearTimeout(notifTimeout.current);
-      notifTimeout.current = setTimeout(() => setManagerNotif(null), 6000);
+      setIntercomMsgs(prev => {
+        if (prev.find(c => c._id === data._id)) return prev;
+        return [...prev, { ...data, type: 'reply', role: 'manager' }];
+      });
+      if (!showIntercom) {
+        setManagerNotif(data.message);
+        clearTimeout(notifTimeout.current);
+        notifTimeout.current = setTimeout(() => setManagerNotif(null), 6000);
+      }
+    };
+
+    const handleManagerAlert = (data) => {
+      setIntercomMsgs(prev => {
+        if (prev.find(c => c._id === data._id)) return prev;
+        return [...prev, { ...data, type: 'alert', role: 'kitchen' }];
+      });
     };
 
     socket.on('newOrder', handleNewOrder);
     socket.on('update_status', handleStatusUpdate);
     socket.on('order_instruction', handleInstruction);
     socket.on('manager_reply', handleManagerReply);
+    socket.on('manager_alert', handleManagerAlert);
 
     return () => {
       socket.off('newOrder', handleNewOrder);
       socket.off('update_status', handleStatusUpdate);
       socket.off('order_instruction', handleInstruction);
       socket.off('manager_reply', handleManagerReply);
+      socket.off('manager_alert', handleManagerAlert);
     };
   }, [socket, user]);
 
@@ -193,29 +231,34 @@ export default function KitchenDashboard() {
     }
   };
 
-  // Send manager alert
-  const sendManagerAlert = async () => {
-    if (!managerAlertMsg.trim()) return;
+  // Send message to manager (Bidirectional Chat)
+  const sendIntercomMsg = async () => {
+    if (!newIntercomMsg.trim()) return;
+    const msgSent = newIntercomMsg.trim();
+    setNewIntercomMsg('');
+    
+    // Optimistic Update
+    const optimistic = { _id: 'opt_' + Date.now(), senderName: user?.name || 'Kitchen', role: 'kitchen', message: msgSent, type: 'alert', timestamp: new Date() };
+    setIntercomMsgs(prev => [...prev, optimistic]);
+
     try {
       await API.post('/comms', {
         restaurantId: user.restaurant,
         senderName: user?.name || 'Kitchen',
         role: 'kitchen',
-        message: managerAlertMsg,
+        message: msgSent,
         type: 'alert'
       });
     } catch {
       if (socket) {
         socket.emit('manager_alert', {
           restaurantId: user.restaurant,
-          message: managerAlertMsg,
+          message: msgSent,
           senderName: user?.name || 'Kitchen',
           type: 'alert'
         });
       }
     }
-    setManagerAlertMsg('');
-    setManagerMsg('');
   };
 
   const filteredOrders = activeTab === 'all' ? orders
@@ -275,26 +318,16 @@ export default function KitchenDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {/* Removed clock item as requested */}
           <div style={{ display: 'flex', gap: 12 }} className="hide-mobile">
-            <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer' }} onClick={() => alert('Search functionality coming soon!')} />
-            <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer' }} onClick={() => alert('No new notifications.')} />
+            <button onClick={() => setShowIntercom(true)} style={{ background: 'rgba(232,163,23,0.1)', border: '1px solid rgba(232,163,23,0.2)', borderRadius: 8, padding: '6px 12px', color: '#E8A317', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', fontWeight: 600 }}>
+              <FiMessageSquare size={16} /> Intercom
+            </button>
+            <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer', marginTop: 8 }} onClick={() => alert('Search functionality coming soon!')} />
+            <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer', marginTop: 8 }} onClick={() => alert('No new notifications.')} />
             <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiUser size={18} color="#A89B8C" /></button>
           </div>
         </div>
       </header>
 
-      {/* Manager Alert Bar */}
-      <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(232,163,23,0.06)', display: 'flex', gap: 10 }}>
-        <input
-          value={managerAlertMsg}
-          onChange={e => setManagerAlertMsg(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && sendManagerAlert()}
-          placeholder="🚨 Flag Resource Stress..."
-          style={{ flex: 1, background: '#1a1208', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '7px 12px', color: '#F5F0E8', fontSize: '0.82rem', outline: 'none' }}
-        />
-        <button onClick={sendManagerAlert} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '7px 14px', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
-          <FiAlertTriangle size={14} /> Alert Manager
-        </button>
-      </div>
 
       {/* Tabs */}
       <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(232,163,23,0.06)' }} className="scroll-x">
@@ -413,6 +446,49 @@ export default function KitchenDashboard() {
           </button>
         </div>
       </div>
+      {/* Staff Intercom Sidebar Overlay */}
+      {showIntercom && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', justifyContent: 'flex-end', animation: 'fadeIn 0.2s' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowIntercom(false)} />
+          <div style={{ position: 'relative', width: 400, maxWidth: '90%', height: '100%', background: '#0d0a06', borderLeft: '1px solid rgba(232,163,23,0.15)', display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 30px rgba(0,0,0,0.5)', animation: 'slideInRight 0.3s' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(232,163,23,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.2rem' }}>Staff Intercom</h3>
+                <span style={{ fontSize: '0.7rem', color: '#6B5E50' }}>KITCHEN ↔ MANAGER</span>
+              </div>
+              <button onClick={() => setShowIntercom(false)} style={{ background: 'none', border: 'none', color: '#A89B8C', cursor: 'pointer' }}><FiX size={20} /></button>
+            </div>
+            
+            <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {intercomLoading ? <div style={{ textAlign: 'center', padding: 20 }}><div className="spinner" style={{ margin: '0 auto' }} /></div> : null}
+              {intercomMsgs.map((c, i) => {
+                const isMe = c.role === 'kitchen';
+                return (
+                  <div key={c._id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                    <div style={{ background: isMe ? 'rgba(232,163,23,0.1)' : 'rgba(34,197,94,0.06)', border: `1px solid ${isMe ? 'rgba(232,163,23,0.2)' : 'rgba(34,197,94,0.15)'}`, borderRadius: 12, padding: '10px 14px' }}>
+                      <div style={{ fontSize: '0.65rem', color: isMe ? '#E8A317' : '#22C55E', fontWeight: 600, marginBottom: 4 }}>{isMe ? '👤 YOU' : '👔 MANAGER'}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#F5F0E8' }}>{c.message}</div>
+                    </div>
+                    <div style={{ fontSize: '0.62rem', color: '#6B5E50', marginTop: 2, textAlign: isMe ? 'right' : 'left' }}>{new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(232,163,23,0.1)', display: 'flex', gap: 10 }}>
+              <input
+                value={newIntercomMsg}
+                onChange={e => setNewIntercomMsg(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendIntercomMsg()}
+                placeholder="Type a message to manager..."
+                style={{ flex: 1, background: '#1a1208', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 8, padding: '10px 14px', color: '#F5F0E8', fontSize: '0.88rem', outline: 'none' }}
+              />
+              <button onClick={sendIntercomMsg} style={{ background: '#E8A317', border: 'none', borderRadius: 8, padding: '10px 16px', color: '#0d0a06', cursor: 'pointer', fontWeight: 700 }}><FiSend size={18} /></button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
