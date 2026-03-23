@@ -9,7 +9,7 @@ import { io } from 'socket.io-client';
 const SocketContext = createContext(null);
 export const useSocket = () => useContext(SocketContext);
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export function SocketProvider({ children }) {
   const socketRef = useRef(null);
