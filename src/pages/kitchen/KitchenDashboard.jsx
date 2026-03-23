@@ -221,8 +221,8 @@ export default function KitchenDashboard() {
 
       {/* Shout Modal */}
       {shoutModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#1a1208', border: '1px solid rgba(232,163,23,0.2)', borderRadius: 16, padding: 24, width: 320 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#1a1208', border: '1px solid rgba(232,163,23,0.2)', borderRadius: 16, padding: 24, width: 320, maxWidth: '100%' }}>
             <h3 style={{ fontWeight: 700, marginBottom: 8 }}>📢 Send Shout to Customer</h3>
             <p style={{ color: '#A89B8C', fontSize: '0.82rem', marginBottom: 16 }}>Order: {shoutModal.tokenNumber}</p>
             <input
@@ -240,20 +240,22 @@ export default function KitchenDashboard() {
       )}
 
       {/* KDS Header */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid rgba(232,163,23,0.12)', background: '#0d0a06' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid rgba(232,163,23,0.12)', background: '#0d0a06' }} className="stack-mobile">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(232,163,23,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <MdRestaurantMenu size={18} color="#E8A317" />
           </div>
-          <div><div style={{ fontWeight: 700, fontSize: '0.95rem' }}>KDS Active Orders</div><div style={{ fontSize: '0.7rem', color: '#6B5E50' }}>STATION 1: MAIN KITCHEN</div></div>
+          <div><div style={{ fontWeight: 700, fontSize: '1.2rem' }}>KDS Active Orders</div><div style={{ fontSize: '0.7rem', color: '#6B5E50' }}>STATION 1: MAIN KITCHEN</div></div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ background: '#1a1208', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 20, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <FiClock size={14} color="#E8A317" /><span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem', color: '#E8A317' }}>{clockStr}</span>
           </div>
-          <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
-          <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
-          <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiUser size={18} color="#A89B8C" /></button>
+          <div style={{ display: 'flex', gap: 12 }} className="hide-mobile">
+            <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
+            <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
+            <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiUser size={18} color="#A89B8C" /></button>
+          </div>
         </div>
       </header>
 
@@ -263,7 +265,7 @@ export default function KitchenDashboard() {
           value={managerAlertMsg}
           onChange={e => setManagerAlertMsg(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendManagerAlert()}
-          placeholder="🚨 Flag Resource Stress or message manager..."
+          placeholder="🚨 Flag Resource Stress..."
           style={{ flex: 1, background: '#1a1208', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '7px 12px', color: '#F5F0E8', fontSize: '0.82rem', outline: 'none' }}
         />
         <button onClick={sendManagerAlert} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '7px 14px', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
@@ -272,8 +274,8 @@ export default function KitchenDashboard() {
       </div>
 
       {/* Tabs */}
-      <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(232,163,23,0.06)' }}>
-        <div className="tabs">
+      <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(232,163,23,0.06)' }} className="scroll-x">
+        <div className="tabs" style={{ minWidth: 'max-content' }}>
           {[
             { key: 'all', label: 'All Orders', count: stats.total },
             { key: 'new', label: 'New', count: stats.new },
@@ -288,9 +290,9 @@ export default function KitchenDashboard() {
       </div>
 
       {/* Order Cards Grid */}
-      <div style={{ flex: 1, padding: 24, overflowX: 'auto', display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, padding: 24, display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center' }}>
         {filteredOrders.length === 0 ? (
-          <div style={{ textAlign: 'center', width: '100%', padding: 60, color: '#6B5E50' }}>
+          <div style={{ textAlign: 'center', width: '100%', padding: '60px 20px', color: '#6B5E50' }}>
             <p style={{ fontSize: '3rem' }}>🍳</p>
             <p>No active orders. Waiting for new orders...</p>
           </div>
@@ -298,7 +300,7 @@ export default function KitchenDashboard() {
           const badge = priorityBadge(order.priority);
           return (
             <div key={order._id} className={`order-card ${order.priority === 'rush' ? 'rush' : ''} ${order.priority === 'priority' ? 'priority' : ''} ${order.isLate ? 'late' : ''}`}
-              style={{ minWidth: 280, maxWidth: 320, animation: `fadeIn 0.4s ease ${idx * 0.1}s both` }}>
+              style={{ minWidth: '100%', maxWidth: 320, animation: `fadeIn 0.4s ease ${idx * 0.1}s both` }}>
               {/* Card Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div>
@@ -337,16 +339,17 @@ export default function KitchenDashboard() {
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button className={`btn btn-sm ${order.status === 'placed' ? 'btn-secondary' : ''}`}
-                  style={order.status !== 'placed' ? { background: '#333', color: '#888', border: '1px solid #444', cursor: 'default' } : {}}
+                  style={{ flex: 1, ...(order.status !== 'placed' ? { background: '#333', color: '#888', border: '1px solid #444', cursor: 'default' } : {}) }}
                   onClick={() => order.status === 'placed' && updateStatus(order._id, 'preparing')}>
                   {order.status === 'placed' ? 'FIRE' : 'FIRED'}
                 </button>
                 <button className={`btn btn-sm ${order.status === 'preparing' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1 }}
                   onClick={() => order.status === 'preparing' && updateStatus(order._id, 'ready')}>
                   PLATED
                 </button>
                 <button onClick={() => setShoutModal({ orderId: order._id, tokenNumber: order.tokenNumber })}
-                  style={{ padding: '4px 10px', background: 'rgba(232,163,23,0.08)', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 6, color: '#E8A317', cursor: 'pointer', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  style={{ padding: '4px 10px', background: 'rgba(232,163,23,0.08)', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 6, color: '#E8A317', cursor: 'pointer', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' }}>
                   <FiSend size={11} /> Shout
                 </button>
               </div>
@@ -356,16 +359,15 @@ export default function KitchenDashboard() {
       </div>
 
       {/* Bottom Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid rgba(232,163,23,0.12)', background: '#0d0a06' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-sm btn-secondary"><FiPrinter size={14}/> Re-print All</button>
-          <button className="btn btn-sm btn-secondary"><MdPause size={14}/> Pause Station</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid rgba(232,163,23,0.12)', background: '#0d0a06' }} className="stack-mobile">
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn-sm btn-secondary" style={{ flex: 1 }}><FiPrinter size={14}/> Print</button>
+          <button className="btn btn-sm btn-secondary" style={{ flex: 1 }}><MdPause size={14}/> Station</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: '0.75rem', color: '#6B5E50' }}>ACTIVE STATION</div>
-          <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', color: '#E8A317' }}>KITCHEN_ALPHA_01</span>
-          <button className="btn btn-sm btn-danger" onClick={() => orders.forEach(o => o.status === 'preparing' && updateStatus(o._id, 'ready'))}>
-            BUMP ALL COMPLETED
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'space-between' }}>
+          <div className="hide-mobile" style={{ fontSize: '0.75rem', color: '#6B5E50' }}>ALPHA_01</div>
+          <button className="btn btn-sm btn-danger" style={{ flex: 1 }} onClick={() => orders.forEach(o => o.status === 'preparing' && updateStatus(o._id, 'ready'))}>
+            BUMP ALL
           </button>
         </div>
       </div>

@@ -168,10 +168,10 @@ export default function ManagerDashboard() {
   const statusColor = (s) => s === 'placed' ? '#22C55E' : s === 'preparing' ? '#E8A317' : '#6B5E50';
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh' }} className="sidebar-layout">
+      <div style={{ display: 'flex', minHeight: '100vh' }} className="sidebar-layout">
         {/* Sidebar */}
-        <aside style={{ width: 220, background: '#0d0a06', borderRight: '1px solid rgba(232,163,23,0.1)', padding: '20px 14px', display: 'flex', flexDirection: 'column' }}>
+        <aside>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(232,163,23,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MdRestaurantMenu size={18} color="#E8A317" />
@@ -184,17 +184,17 @@ export default function ManagerDashboard() {
                 {item.icon} {item.label}
               </Link>
             ) : (
-              <button key={item.key} onClick={() => setActiveView(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, marginBottom: 4, color: activeView === item.key ? '#E8A317' : '#A89B8C', background: activeView === item.key ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.88rem', fontWeight: activeView === item.key ? 600 : 400, border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
-                {item.icon} {item.label}
+              <button key={item.key} onClick={() => setActiveView(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, marginBottom: 4, color: activeView === item.key ? '#E8A317' : '#A89B8C', background: activeView === item.key ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.88rem', fontWeight: activeView === item.key ? 600 : 400, border: 'none', cursor: 'pointer', width: 'auto', textAlign: 'left' }}>
+                {item.icon} <span className="hide-mobile">{item.label}</span>
                 {item.key === 'log' && globalLog.length > 0 && (
                   <span style={{ marginLeft: 'auto', background: '#EF4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, borderRadius: 10, padding: '1px 6px' }}>{Math.min(globalLog.length, 99)}</span>
                 )}
               </button>
             )
           ))}
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1 }} className="hide-mobile" />
           <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'none', border: 'none', color: '#6B5E50', cursor: 'pointer', fontSize: '0.88rem' }}>
-            <FiLogOut /> Logout
+            <FiLogOut /> <span className="hide-mobile">Logout</span>
           </button>
         </aside>
 
@@ -209,7 +209,7 @@ export default function ManagerDashboard() {
               </div>
 
               {/* Stats Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 20 }}>
                 {[
                   { icon: <FiActivity size={18} />, label: 'Kitchen Load', value: `${d.workload.loadPercentage}%`, color: loadColor, sub: d.workload.loadLevel.toUpperCase() },
                   { icon: <FiClock size={18} />, label: 'Active Orders', value: d.todayStats.activeOrders, color: '#E8A317', sub: `of ${d.todayStats.totalOrders} today` },
@@ -228,7 +228,7 @@ export default function ManagerDashboard() {
               </div>
 
               {/* Workload + Staff */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 20 }}>
                 <div className="card">
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 14 }}>Kitchen Workload</h3>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
@@ -261,12 +261,12 @@ export default function ManagerDashboard() {
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 14, color: '#f87171' }}>⚠️ Inventory Alerts</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {inventoryAlerts.map(alert => (
-                      <div key={alert.ingredientId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1a1208', padding: '9px 14px', borderRadius: 8 }}>
+                      <div key={alert.ingredientId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1a1208', padding: '9px 14px', borderRadius: 8 }} className="stack-mobile">
                         <div>
                           <strong style={{ display: 'block', color: '#f87171', fontSize: '0.88rem' }}>{alert.name} is running low</strong>
                           <span style={{ fontSize: '0.78rem', color: '#A89B8C' }}>Only <strong style={{color:'#f87171'}}>{alert.stock}</strong> left (Threshold: {alert.threshold})</span>
                         </div>
-                        <button className="btn btn-sm" style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }} onClick={async () => {
+                        <button className="btn btn-sm" style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', width: 'auto' }} onClick={async () => {
                           try { await API.patch(`/inventory/${alert.ingredientId}/restock`); setInventoryAlerts(prev => prev.filter(a => a.ingredientId !== alert.ingredientId)); } catch {}
                         }}>Mark Restocked</button>
                       </div>
@@ -279,14 +279,16 @@ export default function ManagerDashboard() {
               {d.topItems?.length > 0 && (
                 <div className="card">
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 14 }}>Top Selling Items</h3>
-                  <table className="data-table">
-                    <thead><tr><th>Item</th><th>Orders</th><th>Price</th></tr></thead>
-                    <tbody>
-                      {d.topItems.map((item, i) => (
-                        <tr key={i}><td style={{ fontWeight: 500 }}>{item.name}</td><td><span className="badge badge-amber">{item.orderCount}</span></td><td>₹{item.price}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="scroll-x">
+                    <table className="data-table">
+                      <thead><tr><th>Item</th><th>Orders</th><th>Price</th></tr></thead>
+                      <tbody>
+                        {d.topItems.map((item, i) => (
+                          <tr key={i}><td style={{ fontWeight: 500 }}>{item.name}</td><td><span className="badge badge-amber">{item.orderCount}</span></td><td>₹{item.price}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </>
@@ -299,17 +301,17 @@ export default function ManagerDashboard() {
                 <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.3rem', fontWeight: 800 }}>Mirror KDS</h1>
                 <p style={{ color: '#6B5E50', fontSize: '0.82rem' }}>Real-time view of kitchen orders</p>
               </div>
-              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {kdsOrders.length === 0 ? (
                   <div style={{ color: '#6B5E50', textAlign: 'center', width: '100%', padding: 40 }}>
                     <p style={{ fontSize: '2rem' }}>🍳</p>
                     <p>No active kitchen orders</p>
                   </div>
                 ) : kdsOrders.map((order) => (
-                  <div key={order._id} className="order-card" style={{ minWidth: 260, maxWidth: 300 }}>
+                  <div key={order._id} className="order-card" style={{ minWidth: 'auto' }}>
                     <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.2rem', fontWeight: 800 }}>{order.tokenNumber}</div>
                     <div style={{ fontSize: '0.72rem', color: statusColor(order.status), marginBottom: 10 }}>
-                      {order.status?.toUpperCase()} • T{order.tableNumber} • {order.minutesAgo || 0}M AGO
+                      {`${order.status?.toUpperCase()} • T${order.tableNumber} • ${order.minutesAgo || 0}M AGO`}
                     </div>
                     {order.items?.map((item, i) => (
                       <div key={i} style={{ fontSize: '0.85rem', padding: '4px 0', borderBottom: '1px solid rgba(232,163,23,0.05)' }}>

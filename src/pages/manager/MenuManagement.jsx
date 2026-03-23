@@ -97,110 +97,118 @@ export default function MenuManagement() {
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside style={{ width: 240, background: '#0d0a06', borderRight: '1px solid rgba(232,163,23,0.1)', padding: '20px 16px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(232,163,23,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MdRestaurantMenu size={20} color="#E8A317" /></div>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1rem' }}>SPICE<span style={{ color: '#E8A317' }}>ROUTE</span></span>
-        </div>
-        {[
-          { icon: <FiGrid />, label: 'Dashboard', path: '/manager/dashboard' },
-          { icon: <FiMenu />, label: 'Menu Management', path: '/manager/menu', active: true },
-          { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
-          { icon: <FiActivity />, label: 'Kitchen View', path: '/kitchen/dashboard' }
-        ].map(item => (
-          <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, marginBottom: 4, color: item.active ? '#E8A317' : '#A89B8C', background: item.active ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.9rem', fontWeight: item.active ? 600 : 400, textDecoration: 'none' }}>{item.icon} {item.label}</Link>
-        ))}
-        <div style={{ flex: 1 }} />
-        <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'none', border: 'none', color: '#6B5E50', cursor: 'pointer', fontSize: '0.9rem' }}><FiLogOut /> Logout</button>
-      </aside>
-
-      {/* Content */}
-      <main style={{ flex: 1, padding: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.5rem', fontWeight: 800 }}>Menu Management</h1>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowQR(true)}>Print QR</button>
-            <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal()}><FiPlus /> Add Item</button>
+    <div style={{ minHeight: '100vh' }} className="sidebar-layout">
+      <div style={{ display: 'flex', minHeight: '100vh' }} className="sidebar-layout">
+        {/* Sidebar */}
+        <aside>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(232,163,23,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MdRestaurantMenu size={20} color="#E8A317" /></div>
+            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1rem' }}>SPICE<span style={{ color: '#E8A317' }}>ROUTE</span></span>
           </div>
-        </div>
-
-        {/* Category Filter */}
-        <div className="tabs" style={{ marginBottom: 20 }}>
-          {categories.map(cat => (
-            <button key={cat} className={`tab ${filter === cat ? 'active' : ''}`} onClick={() => setFilter(cat)}>{cat}</button>
+          {[
+            { icon: <FiGrid />, label: 'Dashboard', path: '/manager/dashboard' },
+            { icon: <FiMenu />, label: 'Menu Management', path: '/manager/menu', active: true },
+            { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
+            { icon: <FiActivity />, label: 'Kitchen View', path: '/kitchen/dashboard' }
+          ].map(item => (
+            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, marginBottom: 4, color: item.active ? '#E8A317' : '#A89B8C', background: item.active ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.9rem', fontWeight: item.active ? 600 : 400, textDecoration: 'none' }}>
+              {item.icon} <span className="hide-mobile">{item.label}</span>
+            </Link>
           ))}
-        </div>
+          <div style={{ flex: 1 }} className="hide-mobile" />
+          <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'none', border: 'none', color: '#6B5E50', cursor: 'pointer', fontSize: '0.9rem' }}>
+            <FiLogOut /> <span className="hide-mobile">Logout</span>
+          </button>
+        </aside>
 
-        {/* Menu Items Table */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="data-table">
-            <thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Complexity</th><th>Orders</th><th>Available</th><th>Actions</th></tr></thead>
-            <tbody>
-              {filtered.map(item => (
-                <tr key={item._id}>
-                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontWeight: 600 }}>{item.name}</span>{item.isQuickPrep && <span className="badge badge-green" style={{ fontSize: '0.6rem' }}>QP</span>}</div></td>
-                  <td style={{ color: '#A89B8C' }}>{item.category}</td>
-                  <td style={{ fontWeight: 600 }}>₹{item.price}</td>
-                  <td style={{ color: '#A89B8C' }}>{item.prepTime}m</td>
-                  <td><span className={`badge ${item.complexity === 'LOW' ? 'badge-green' : item.complexity === 'MEDIUM' ? 'badge-yellow' : 'badge-red'}`}>{item.complexity}</span></td>
-                  <td><span className="badge badge-amber">{item.orderCount}</span></td>
-                  <td>
-                    <label className="toggle"><input type="checkbox" checked={item.isAvailable} onChange={() => toggleAvailability(item._id)} /><span className="toggle-slider" /></label>
-                  </td>
-                  <td><div style={{ display: 'flex', gap: 8 }}><button onClick={() => handleOpenModal(item)} style={{ background: 'none', border: 'none', color: '#A89B8C', cursor: 'pointer' }}><FiEdit size={15} /></button><button onClick={() => handleDelete(item._id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><FiTrash2 size={15} /></button></div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* QR Modal */}
-        {showQR && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div className="card" style={{ padding: 40, textAlign: 'center', background: '#1a1208', border: '1px solid #E8A317' }}>
-              <h2 style={{ marginBottom: 20 }}>Customer Menu QR</h2>
-              <div style={{ background: 'white', padding: 20, borderRadius: 10, display: 'inline-block' }}>
-                <QRCodeSVG value={`${window.location.origin}/menu/${user?.restaurant}?table=1`} size={200} />
-              </div>
-              <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button className="btn btn-secondary" onClick={() => window.print()}>Print</button>
-                <button className="btn btn-danger" onClick={() => setShowQR(false)}>Close</button>
-              </div>
+        {/* Content */}
+        <main style={{ flex: 1, padding: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }} className="stack-mobile">
+            <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.5rem', fontWeight: 800 }}>Menu Management</h1>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowQR(true)}>Print QR</button>
+              <button className="btn btn-primary btn-sm" onClick={() => handleOpenModal()}><FiPlus /> Add Item</button>
             </div>
           </div>
-        )}
 
-        {/* Item Form Modal */}
-        {isModalOpen && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div className="card" style={{ width: 400, background: '#1a1208', border: '1px solid #E8A317' }}>
-              <h2 style={{ marginBottom: 20 }}>{editItem ? 'Edit Item' : 'Add New Item'}</h2>
-              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                <input required placeholder="Item Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input required type="number" placeholder="Price" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
-                  <input required type="number" placeholder="Prep Time (m)" value={formData.prepTime} onChange={e => setFormData({...formData, prepTime: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
-                </div>
-                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
-                  <option>Breakfast</option><option>Main Course</option><option>Beverages</option><option>Desserts</option><option>Starters</option><option>Specials</option>
-                </select>
-                <select value={formData.complexity} onChange={e => setFormData({...formData, complexity: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
-                  <option value="LOW">Low Complexity</option><option value="MEDIUM">Medium Complexity</option><option value="HIGH">High Complexity</option>
-                </select>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input type="checkbox" checked={formData.isQuickPrep} onChange={e => setFormData({...formData, isQuickPrep: e.target.checked})} /> Quick Prep Item
-                </label>
-                <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Save Item</button>
-                </div>
-              </form>
+          {/* Category Filter */}
+          <div className="tabs" style={{ marginBottom: 20 }}>
+            {categories.map(cat => (
+              <button key={cat} className={`tab ${filter === cat ? 'active' : ''}`} onClick={() => setFilter(cat)}>{cat}</button>
+            ))}
+          </div>
+
+          {/* Menu Items Table */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="scroll-x">
+              <table className="data-table">
+                <thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Complexity</th><th>Orders</th><th>Available</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {filtered.map(item => (
+                    <tr key={item._id}>
+                      <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontWeight: 600 }}>{item.name}</span>{item.isQuickPrep && <span className="badge badge-green" style={{ fontSize: '0.6rem' }}>QP</span>}</div></td>
+                      <td style={{ color: '#A89B8C' }}>{item.category}</td>
+                      <td style={{ fontWeight: 600 }}>₹{item.price}</td>
+                      <td style={{ color: '#A89B8C' }}>{item.prepTime}m</td>
+                      <td><span className={`badge ${item.complexity === 'LOW' ? 'badge-green' : item.complexity === 'MEDIUM' ? 'badge-yellow' : 'badge-red'}`}>{item.complexity}</span></td>
+                      <td><span className="badge badge-amber">{item.orderCount}</span></td>
+                      <td>
+                        <label className="toggle"><input type="checkbox" checked={item.isAvailable} onChange={() => toggleAvailability(item._id)} /><span className="toggle-slider" /></label>
+                      </td>
+                      <td><div style={{ display: 'flex', gap: 8 }}><button onClick={() => handleOpenModal(item)} style={{ background: 'none', border: 'none', color: '#A89B8C', cursor: 'pointer' }}><FiEdit size={15} /></button><button onClick={() => handleDelete(item._id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><FiTrash2 size={15} /></button></div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
-      </main>
+
+          {/* QR Modal */}
+          {showQR && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+              <div className="card" style={{ padding: 'clamp(20px, 5vw, 40px)', textAlign: 'center', background: '#1a1208', border: '1px solid #E8A317', maxWidth: '100%' }}>
+                <h2 style={{ marginBottom: 20, fontSize: '1.2rem' }}>Customer Menu QR</h2>
+                <div style={{ background: 'white', padding: 15, borderRadius: 10, display: 'inline-block' }}>
+                  <QRCodeSVG value={`${window.location.origin}/menu/${user?.restaurant}?table=1`} size={window.innerWidth < 480 ? 160 : 200} />
+                </div>
+                <div style={{ marginTop: 24, display: 'flex', gap: 10, justifyContent: 'center' }} className="stack-mobile">
+                  <button className="btn btn-secondary" onClick={() => window.print()} style={{ flex: 1 }}>Print</button>
+                  <button className="btn btn-danger" onClick={() => setShowQR(false)} style={{ flex: 1 }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Item Form Modal */}
+          {isModalOpen && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+              <div className="card" style={{ width: 400, maxWidth: '100%', background: '#1a1208', border: '1px solid #E8A317' }}>
+                <h2 style={{ marginBottom: 20 }}>{editItem ? 'Edit Item' : 'Add New Item'}</h2>
+                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                  <input required placeholder="Item Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <input required type="number" placeholder="Price" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                    <input required type="number" placeholder="Prep Time (m)" value={formData.prepTime} onChange={e => setFormData({...formData, prepTime: Number(e.target.value)})} style={{ flex: 1, padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }} />
+                  </div>
+                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
+                    <option>Breakfast</option><option>Main Course</option><option>Beverages</option><option>Desserts</option><option>Starters</option><option>Specials</option>
+                  </select>
+                  <select value={formData.complexity} onChange={e => setFormData({...formData, complexity: e.target.value})} style={{ padding: 10, background: '#0d0a06', border: '1px solid #333', color: 'white', borderRadius: 4 }}>
+                    <option value="LOW">Low Complexity</option><option value="MEDIUM">Medium Complexity</option><option value="HIGH">High Complexity</option>
+                  </select>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.9rem' }}>
+                    <input type="checkbox" checked={formData.isQuickPrep} onChange={e => setFormData({...formData, isQuickPrep: e.target.checked})} /> Quick Prep Item
+                  </label>
+                  <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                    <button type="submit" className="btn btn-primary">Save Item</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

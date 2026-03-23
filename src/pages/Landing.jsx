@@ -35,7 +35,7 @@ export default function Landing() {
       </header>
 
       {/* Main Content */}
-      <main style={styles.main}>
+      <main style={styles.main} className="stack-mobile">
         <div style={styles.left}>
           <div style={styles.statusBadge}>
             <span style={styles.statusDot} />
@@ -47,7 +47,7 @@ export default function Landing() {
           <p style={styles.subtitle}>
             Select your destination to access the SpiceRoute unified management ecosystem.
           </p>
-          <div style={styles.trustBadge}>
+          <div style={styles.trustBadge} className="hide-mobile">
             <div style={styles.avatarGroup}>
               {['👨‍🍳', '👩‍🍳', '🧑‍🍳'].map((e, i) => (
                 <div key={i} style={{ ...styles.avatar, marginLeft: i > 0 ? '-8px' : 0, zIndex: 3 - i }}>
@@ -99,12 +99,12 @@ export default function Landing() {
       <footer style={styles.footer}>
         <div style={styles.footerLinks}>
           <a href="#" style={styles.footerLink}>Privacy Policy</a>
-          <span style={styles.footerDot}>•</span>
-          <a href="#" style={styles.footerLink}>Terms of Service</a>
-          <span style={styles.footerDot}>•</span>
-          <a href="#" style={styles.footerLink}>Support</a>
+          <span style={styles.footerDot} className="hide-mobile">•</span>
+          <a href="#" style={styles.footerLink} className="hide-mobile">Terms of Service</a>
+          <span style={styles.footerDot} className="hide-mobile">•</span>
+          <a href="#" style={styles.footerLink} className="hide-mobile">Support</a>
         </div>
-        <span style={styles.copyright}>© 2024 SPICEROUTE TECHNOLOGY GROUP</span>
+        <span style={styles.copyright}>© 2024 SPICEROUTE</span>
       </footer>
     </div>
   );
@@ -118,7 +118,7 @@ const styles = {
   },
   header: {
     position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center',
-    justifyContent: 'space-between', padding: '20px 40px',
+    justifyContent: 'space-between', padding: '16px 5%',
     borderBottom: '1px solid rgba(232,163,23,0.1)'
   },
   logo: { display: 'flex', alignItems: 'center', gap: 12 },
@@ -126,19 +126,19 @@ const styles = {
     width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'rgba(232,163,23,0.1)', border: '1px solid rgba(232,163,23,0.2)'
   },
-  logoText: { fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.3rem', letterSpacing: 2, color: '#F5F0E8' },
+  logoText: { fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.2rem', letterSpacing: 2, color: '#F5F0E8' },
   main: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: 80, padding: '40px', position: 'relative', zIndex: 10, flexWrap: 'wrap'
+    gap: 'clamp(20px, 8vw, 80px)', padding: '5%', position: 'relative', zIndex: 10, flexWrap: 'wrap'
   },
-  left: { maxWidth: 480 },
+  left: { maxWidth: 500, width: '100%' },
   statusBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px',
     borderRadius: 20, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.08)',
-    color: '#22C55E', fontSize: '0.75rem', fontWeight: 600, letterSpacing: 1, marginBottom: 24
+    color: '#22C55E', fontSize: '0.75rem', fontWeight: 600, letterSpacing: 1, marginBottom: 20
   },
   statusDot: { width: 8, height: 8, borderRadius: '50%', background: '#22C55E', animation: 'pulse 2s infinite' },
-  title: { fontFamily: "'Outfit', sans-serif", fontSize: 'clamp(2.2rem, 4vw, 3.5rem)', fontWeight: 800, lineHeight: 1.1, color: '#F5F0E8', marginBottom: 16 },
+  title: { fontFamily: "'Outfit', sans-serif", fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 800, lineHeight: 1.1, color: '#F5F0E8', marginBottom: 16 },
   titleAccent: { color: '#E8A317', display: 'inline-block' },
   subtitle: { fontSize: '1rem', color: '#A89B8C', lineHeight: 1.6, marginBottom: 32 },
   trustBadge: { display: 'flex', alignItems: 'center', gap: 12 },
@@ -148,10 +148,10 @@ const styles = {
     background: '#2a1f0e', border: '2px solid #1a1208', fontSize: '1.1rem', position: 'relative'
   },
   trustText: { fontSize: '0.85rem', color: '#A89B8C' },
-  right: { width: 380 },
+  right: { maxWidth: 380, width: '100%' },
   portalCard: {
     background: '#1a1208', border: '1px solid rgba(232,163,23,0.15)',
-    borderRadius: 16, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.4)'
+    borderRadius: 16, padding: 'clamp(20px, 5vw, 28px)', boxShadow: '0 8px 40px rgba(0,0,0,0.4)'
   },
   portalTitle: { fontFamily: "'Outfit', sans-serif", fontSize: '1.15rem', fontWeight: 700, color: '#F5F0E8', marginBottom: 20, display: 'flex', alignItems: 'center' },
   portalBtn: {
@@ -168,10 +168,10 @@ const styles = {
   biometricNote: { textAlign: 'center', fontSize: '0.78rem', color: '#6B5E50', marginTop: 16 },
   footer: {
     position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between',
-    alignItems: 'center', padding: '20px 40px', borderTop: '1px solid rgba(232,163,23,0.08)',
+    alignItems: 'center', padding: '20px 5%', borderTop: '1px solid rgba(232,163,23,0.08)',
     flexWrap: 'wrap', gap: 12
   },
-  footerLinks: { display: 'flex', gap: 8, alignItems: 'center' },
+  footerLinks: { display: 'flex', gap: 16, alignItems: 'center' },
   footerLink: { color: '#6B5E50', fontSize: '0.8rem', textDecoration: 'none' },
   footerDot: { color: '#6B5E50', fontSize: '0.6rem' },
   copyright: { color: '#6B5E50', fontSize: '0.75rem', letterSpacing: 0.5 }
