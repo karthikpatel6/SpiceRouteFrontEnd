@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import API from '../../api/axios';
-import { FiActivity, FiUsers, FiDollarSign, FiClock, FiMenu, FiBarChart2, FiGrid, FiLogOut, FiMessageSquare, FiEye } from 'react-icons/fi';
+import { FiActivity, FiUsers, FiDollarSign, FiClock, FiMenu, FiBarChart2, FiGrid, FiLogOut, FiMessageSquare, FiSearch, FiBell } from 'react-icons/fi';
 import { MdRestaurantMenu } from 'react-icons/md';
 
 export default function ManagerDashboard() {
@@ -158,7 +158,6 @@ export default function ManagerDashboard() {
 
   const navItems = [
     { icon: <FiGrid />, label: 'Dashboard', key: 'dashboard' },
-    { icon: <FiEye />, label: 'Mirror KDS', key: 'kds' },
     { icon: <FiMessageSquare />, label: 'Global Log', key: 'log' },
     { icon: <FiMenu />, label: 'Menu Mgmt', path: '/manager/menu' },
     { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
@@ -203,26 +202,31 @@ export default function ManagerDashboard() {
           {/* DASHBOARD VIEW */}
           {activeView === 'dashboard' && (
             <>
-              <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 800 }}>Dashboard</h1>
-                <p style={{ color: '#6B5E50', fontSize: '0.82rem' }}>Welcome back, {user?.name || 'Manager'}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }} className="stack-mobile">
+                <div>
+                  <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 800 }}>Dashboard</h1>
+                  <p style={{ color: '#6B5E50', fontSize: '0.82rem' }}>Welcome back, {user?.name || 'Manager'}</p>
+                </div>
+                {/* Search/Notif CTAs (Phase 3: Wire these) */}
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={() => alert('Search...')} style={{ background: '#1a1d1a', border: '1px solid #333', borderRadius: 8, padding: 8, color: '#A89B8C', cursor: 'pointer' }}><FiSearch size={16} /></button>
+                  <button onClick={() => alert('No notifications')} style={{ background: '#1a1d1a', border: '1px solid #333', borderRadius: 8, padding: 8, color: '#A89B8C', cursor: 'pointer' }}><FiBell size={16} /></button>
+                </div>
               </div>
 
               {/* Stats Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
                 {[
-                  { icon: <FiActivity size={18} />, label: 'Kitchen Load', value: `${d.workload.loadPercentage}%`, color: loadColor, sub: d.workload.loadLevel.toUpperCase() },
-                  { icon: <FiClock size={18} />, label: 'Active Orders', value: d.todayStats.activeOrders, color: '#E8A317', sub: `of ${d.todayStats.totalOrders} today` },
-                  { icon: <FiDollarSign size={18} />, label: "Today's Revenue", value: `₹${d.todayStats.totalRevenue.toLocaleString()}`, color: '#22C55E', sub: `${d.todayStats.completedOrders} completed` },
-                  { icon: <FiUsers size={18} />, label: 'Staff on Duty', value: d.staffRecommendation.onDutyStaff, color: d.staffRecommendation.needMoreStaff ? '#EF4444' : '#22C55E', sub: `Need ${d.staffRecommendation.recommendedStaff}` }
+                  { icon: <FiActivity size={20} />, label: 'Kitchen Load', value: `${d.workload.loadPercentage}%`, color: loadColor, sub: d.workload.loadLevel.toUpperCase() },
+                  { icon: <FiDollarSign size={20} />, label: "Today's Revenue", value: `₹${d.todayStats.totalRevenue.toLocaleString()}`, color: '#22C55E', sub: `${d.todayStats.completedOrders} completed` }
                 ].map((stat, i) => (
-                  <div key={i} className="card animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{ color: '#6B5E50', fontSize: '0.78rem' }}>{stat.label}</span>
+                  <div key={i} className="card animate-fade" style={{ animationDelay: `${i * 0.1}s`, padding: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ color: '#6B5E50', fontSize: '0.82rem', fontWeight: 600 }}>{stat.label}</span>
                       <div style={{ color: stat.color }}>{stat.icon}</div>
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: stat.color }}>{stat.value}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#6B5E50', marginTop: 3 }}>{stat.sub}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: stat.color }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6B5E50', marginTop: 5 }}>{stat.sub}</div>
                   </div>
                 ))}
               </div>
@@ -291,36 +295,6 @@ export default function ManagerDashboard() {
                   </div>
                 </div>
               )}
-            </>
-          )}
-
-          {/* MIRROR KDS VIEW */}
-          {activeView === 'kds' && (
-            <>
-              <div style={{ marginBottom: 18 }}>
-                <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.3rem', fontWeight: 800 }}>Mirror KDS</h1>
-                <p style={{ color: '#6B5E50', fontSize: '0.82rem' }}>Real-time view of kitchen orders</p>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
-                {kdsOrders.length === 0 ? (
-                  <div style={{ color: '#6B5E50', textAlign: 'center', width: '100%', padding: 40 }}>
-                    <p style={{ fontSize: '2rem' }}>🍳</p>
-                    <p>No active kitchen orders</p>
-                  </div>
-                ) : kdsOrders.map((order) => (
-                  <div key={order._id} className="order-card" style={{ minWidth: 'auto' }}>
-                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.2rem', fontWeight: 800 }}>{order.tokenNumber}</div>
-                    <div style={{ fontSize: '0.72rem', color: statusColor(order.status), marginBottom: 10 }}>
-                      {`${order.status?.toUpperCase()} • T${order.tableNumber} • ${order.minutesAgo || 0}M AGO`}
-                    </div>
-                    {order.items?.map((item, i) => (
-                      <div key={i} style={{ fontSize: '0.85rem', padding: '4px 0', borderBottom: '1px solid rgba(232,163,23,0.05)' }}>
-                        {item.quantity}x {item.name}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
             </>
           )}
 

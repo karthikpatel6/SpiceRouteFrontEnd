@@ -243,7 +243,7 @@ a { color: var(--amber-primary); text-decoration: none; }
   body { padding-bottom: 80px; } /* Space for bottom nav */
   
   .hide-mobile { display: none !important; }
-  .stack-mobile { flex-direction: column !important; gap: 16px !important; }
+  .stack-mobile { flex-direction: column !important; gap: 12px !important; align-items: stretch !important; }
   
   .grid-1-mobile { grid-template-columns: 1fr !important; }
   .grid-2-mobile { grid-template-columns: 1fr 1fr !important; }
@@ -255,28 +255,34 @@ a { color: var(--amber-primary); text-decoration: none; }
     width: 100% !important; height: auto !important; 
     flex-direction: row !important; padding: 10px !important;
     border-right: none !important; border-top: 1px solid var(--border) !important;
+    background: var(--bg-secondary) !important;
     z-index: 1000 !important; overflow-x: auto !important;
     justify-content: space-around !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
   }
   .sidebar-layout aside > div:first-child { display: none !important; } /* Hide logo on mobile side nav */
   .sidebar-layout aside a, .sidebar-layout aside button { 
-    flex-direction: column !important; gap: 4px !important; padding: 6px 12px !important;
+    flex-direction: column !important; gap: 4px !important; padding: 8px 12px !important;
     font-size: 0.7rem !important; margin-bottom: 0 !important;
+    min-width: 60px;
   }
-  .sidebar-layout aside a svg, .sidebar-layout aside button svg { font-size: 1.2rem !important; }
+  .sidebar-layout aside a svg, .sidebar-layout aside button svg { font-size: 1.3rem !important; }
   
-  .sidebar-layout main { padding: 16px !important; padding-bottom: 100px !important; width: 100% !important; }
+  .sidebar-layout main { padding: 20px !important; padding-bottom: 110px !important; width: 100% !important; overflow-x: hidden; }
   
   /* Tables */
-  .scroll-x { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
-  .data-table { min-width: 600px; }
+  .scroll-x { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: var(--radius-md); }
+  .data-table { min-width: 700px; }
   
   /* Typography */
-  h1 { font-size: 1.6rem !important; }
-  h2 { font-size: 1.3rem !important; }
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  
+  .order-card { min-width: 100% !important; }
 }
 
 @media (max-width: 480px) {
   .grid-2-mobile { grid-template-columns: 1fr !important; }
-  .btn { padding: 10px 16px; font-size: 0.9rem; }
+  .btn { padding: 10px 14px; font-size: 0.9rem; }
+  .sidebar-layout main { padding: 16px !important; padding-bottom: 100px !important; }
 }

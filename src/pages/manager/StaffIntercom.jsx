@@ -47,20 +47,42 @@ export default function StaffIntercom() {
   useEffect(() => {
     if (!socket || !user?.restaurant) return;
 
-    socket.emit('joinManager', user.restaurant);
+    // Join the appropriate rooms based on role
+    socket.emit('joinRestaurant', user.restaurant);
+    if (user.role === 'manager') {
+      socket.emit('joinManager', user.restaurant);
+    } else {
+      socket.emit('joinKitchen', user.restaurant);
+    }
 
     const handleAlert = (data) => {
-      setComms(prev => [...prev, {
-        _id: Date.now(), senderName: data.senderName || 'Kitchen', role: 'kitchen',
-        message: data.message, type: data.type || 'alert', timestamp: data.timestamp || new Date()
-      }]);
+      // Prevent double trigger: ignore if already added to state (via optimistic update)
+      setComms(prev => {
+        if (prev.find(c => c._id === data._id)) return prev;
+        return [...prev, {
+          _id: data._id || Date.now() + Math.random(), 
+          senderName: data.senderName || 'Kitchen', 
+          role: data.role || 'kitchen',
+          message: data.message, 
+          type: data.type || 'alert', 
+          timestamp: data.timestamp || new Date()
+        }];
+      });
     };
 
     const handleReply = (data) => {
-      setComms(prev => [...prev, {
-        _id: Date.now(), senderName: data.senderName || 'Manager', role: 'manager',
-        message: data.message, type: 'reply', timestamp: data.timestamp || new Date()
-      }]);
+      // Prevent double trigger: ignore if already added to state (via optimistic update)
+      setComms(prev => {
+        if (prev.find(c => c._id === data._id)) return prev;
+        return [...prev, {
+          _id: data._id || Date.now() + Math.random(), 
+          senderName: data.senderName || 'Manager', 
+          role: data.role || 'manager',
+          message: data.message, 
+          type: 'reply', 
+          timestamp: data.timestamp || new Date()
+        }];
+      });
     };
 
     socket.on('manager_alert', handleAlert);
@@ -124,7 +146,6 @@ export default function StaffIntercom() {
             { icon: <FiGrid />, label: 'Dashboard', path: '/manager/dashboard' },
             { icon: <FiMenu />, label: 'Menu Mgmt', path: '/manager/menu' },
             { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
-            { icon: <FiActivity />, label: 'Kitchen View', path: '/kitchen/dashboard' },
             { icon: <FiMessageSquare />, label: 'Intercom', path: '/manager/comms', active: true }
           ].map(item => (
             <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, marginBottom: 4, color: item.active ? '#E8A317' : '#A89B8C', background: item.active ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.88rem', fontWeight: item.active ? 600 : 400, textDecoration: 'none' }}>

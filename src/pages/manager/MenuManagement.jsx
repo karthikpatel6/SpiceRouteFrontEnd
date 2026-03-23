@@ -108,8 +108,7 @@ export default function MenuManagement() {
           {[
             { icon: <FiGrid />, label: 'Dashboard', path: '/manager/dashboard' },
             { icon: <FiMenu />, label: 'Menu Management', path: '/manager/menu', active: true },
-            { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' },
-            { icon: <FiActivity />, label: 'Kitchen View', path: '/kitchen/dashboard' }
+            { icon: <FiBarChart2 />, label: 'Analytics', path: '/manager/analytics' }
           ].map(item => (
             <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, marginBottom: 4, color: item.active ? '#E8A317' : '#A89B8C', background: item.active ? 'rgba(232,163,23,0.08)' : 'transparent', fontSize: '0.9rem', fontWeight: item.active ? 600 : 400, textDecoration: 'none' }}>
               {item.icon} <span className="hide-mobile">{item.label}</span>

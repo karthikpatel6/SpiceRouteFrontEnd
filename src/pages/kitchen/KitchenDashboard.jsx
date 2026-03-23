@@ -27,12 +27,14 @@ export default function KitchenDashboard() {
   const [clock, setClock] = useState(new Date());
   const [shoutModal, setShoutModal] = useState(null); // { orderId, tokenNumber }
   const [shoutMsg, setShoutMsg] = useState('');
+  const [replyMsgs, setReplyMsgs] = useState({}); // Per-card reply state
   const [managerMsg, setManagerMsg] = useState('');
   const [managerAlertMsg, setManagerAlertMsg] = useState('');
   const [managerNotif, setManagerNotif] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
   const notifTimeout = useRef(null);
 
-  // Clock
+  // Clock (Keep for internal logic if needed, but UI will remove it)
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
@@ -126,46 +128,69 @@ export default function KitchenDashboard() {
     };
   }, [socket, user]);
 
-  // Update order status via API
+  // Update order status via API with OPTIMISTIC UI
   const updateStatus = async (orderId, status) => {
+    // 1. Optimistic Update
+    const previousOrders = [...orders];
+    setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
+
     try {
       await API.patch(`/orders/${orderId}/status`, { status });
-      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
-    } catch {
-      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
+    } catch (err) {
+      console.error('Status update failed:', err);
+      // Rollback on failure
+      setOrders(previousOrders);
+      alert('Failed to update status. Please try again.');
+    }
+  };
+
+  // Bump all preparing orders to ready
+  const bumpAll = async () => {
+    const preparingOrders = orders.filter(o => o.status === 'preparing');
+    if (preparingOrders.length === 0) return;
+
+    // Optimistic Update
+    const previousOrders = [...orders];
+    setOrders(prev => prev.map(o => o.status === 'preparing' ? { ...o, status: 'ready' } : o));
+
+    try {
+      await Promise.all(preparingOrders.map(o => API.patch(`/orders/${o._id}/status`, { status: 'ready' })));
+    } catch (err) {
+      console.error('Bump all failed:', err);
+      setOrders(previousOrders);
+      alert('Failed to bump some orders.');
     }
   };
 
   // Send kitchen shout to customer
-  const sendShout = async () => {
-    if (!shoutMsg.trim() || !shoutModal) return;
+  const sendShout = async (targetOrderId, targetToken, message) => {
+    const msg = message || shoutMsg;
+    if (!msg.trim()) return;
+
     try {
-      if (shoutModal.orderId && shoutModal.orderId !== 'demo') {
-        await API.post(`/orders/${shoutModal.orderId}/shout`, {
-          message: shoutMsg, senderName: user?.name || 'Kitchen'
+      if (targetOrderId && targetOrderId !== 'demo') {
+        await API.post(`/orders/${targetOrderId}/shout`, {
+          message: msg, senderName: user?.name || 'Kitchen'
         });
       } else if (socket) {
         socket.emit('kitchen_shout', {
           restaurantId: user.restaurant,
-          tokenNumber: shoutModal.tokenNumber,
-          orderId: shoutModal.orderId,
-          message: shoutMsg,
+          tokenNumber: targetToken,
+          orderId: targetOrderId,
+          message: msg,
           senderName: user?.name || 'Kitchen'
         });
       }
-    } catch {
-      if (socket) {
-        socket.emit('kitchen_shout', {
-          restaurantId: user.restaurant,
-          tokenNumber: shoutModal.tokenNumber,
-          orderId: shoutModal.orderId,
-          message: shoutMsg,
-          senderName: user?.name || 'Kitchen'
-        });
-      }
+    } catch (err) {
+      console.error('Shout failed:', err);
     }
-    setShoutMsg('');
-    setShoutModal(null);
+    
+    if (!targetOrderId) {
+      setShoutMsg('');
+      setShoutModal(null);
+    } else {
+      setReplyMsgs(prev => ({ ...prev, [targetOrderId]: '' }));
+    }
   };
 
   // Send manager alert
@@ -206,7 +231,7 @@ export default function KitchenDashboard() {
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', filter: isPaused ? 'grayscale(0.8) brightness(0.7)' : 'none', transition: 'filter 0.3s ease' }}>
       {/* Manager reply notification */}
       {managerNotif && (
         <div style={{
@@ -233,7 +258,7 @@ export default function KitchenDashboard() {
             />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setShoutModal(null)} style={{ flex: 1, padding: 10, background: '#333', border: 'none', borderRadius: 8, color: '#A89B8C', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={sendShout} style={{ flex: 1, padding: 10, background: 'rgba(232,163,23,0.15)', border: '1px solid rgba(232,163,23,0.3)', borderRadius: 8, color: '#E8A317', cursor: 'pointer', fontWeight: 600 }}>Send</button>
+              <button onClick={() => sendShout()} style={{ flex: 1, padding: 10, background: 'rgba(232,163,23,0.15)', border: '1px solid rgba(232,163,23,0.3)', borderRadius: 8, color: '#E8A317', cursor: 'pointer', fontWeight: 600 }}>Send</button>
             </div>
           </div>
         </div>
@@ -248,12 +273,10 @@ export default function KitchenDashboard() {
           <div><div style={{ fontWeight: 700, fontSize: '1.2rem' }}>KDS Active Orders</div><div style={{ fontSize: '0.7rem', color: '#6B5E50' }}>STATION 1: MAIN KITCHEN</div></div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: '#1a1208', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 20, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FiClock size={14} color="#E8A317" /><span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem', color: '#E8A317' }}>{clockStr}</span>
-          </div>
+          {/* Removed clock item as requested */}
           <div style={{ display: 'flex', gap: 12 }} className="hide-mobile">
-            <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
-            <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer' }} />
+            <FiSearch size={18} color="#A89B8C" style={{ cursor: 'pointer' }} onClick={() => alert('Search functionality coming soon!')} />
+            <FiBell size={18} color="#A89B8C" style={{ cursor: 'pointer' }} onClick={() => alert('No new notifications.')} />
             <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiUser size={18} color="#A89B8C" /></button>
           </div>
         </div>
@@ -269,7 +292,7 @@ export default function KitchenDashboard() {
           style={{ flex: 1, background: '#1a1208', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '7px 12px', color: '#F5F0E8', fontSize: '0.82rem', outline: 'none' }}
         />
         <button onClick={sendManagerAlert} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '7px 14px', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
-          <FiAlertTriangle size={14} /> Alert
+          <FiAlertTriangle size={14} /> Alert Manager
         </button>
       </div>
 
@@ -325,7 +348,7 @@ export default function KitchenDashboard() {
                 ))}
               </div>
 
-              {/* Customer Thread Messages */}
+              {/* Customer Thread Messages + Reply Block */}
               {order.thread && order.thread.length > 0 && (
                 <div style={{ marginBottom: 12, padding: '8px 10px', background: 'rgba(232,163,23,0.06)', borderRadius: 8, borderLeft: '2px solid rgba(232,163,23,0.3)' }}>
                   {order.thread.filter(t => t.role === 'customer').map((t, i) => (
@@ -333,6 +356,22 @@ export default function KitchenDashboard() {
                       💬 {t.message}
                     </div>
                   ))}
+                  {/* Phase 1: Reply Block */}
+                  <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                    <input 
+                      value={replyMsgs[order._id] || ''}
+                      onChange={e => setReplyMsgs(prev => ({ ...prev, [order._id]: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && sendShout(order._id, order.tokenNumber, replyMsgs[order._id])}
+                      placeholder="Reply to customer..."
+                      style={{ flex: 1, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(232,163,23,0.1)', borderRadius: 4, padding: '4px 8px', color: '#F5F0E8', fontSize: '0.75rem', outline: 'none' }}
+                    />
+                    <button 
+                      onClick={() => sendShout(order._id, order.tokenNumber, replyMsgs[order._id])}
+                      style={{ background: 'rgba(232,163,23,0.2)', border: 'none', borderRadius: 4, color: '#E8A317', padding: '2px 8px', cursor: 'pointer' }}
+                    >
+                      <FiSend size={12} />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -349,6 +388,7 @@ export default function KitchenDashboard() {
                   PLATED
                 </button>
                 <button onClick={() => setShoutModal({ orderId: order._id, tokenNumber: order.tokenNumber })}
+                  className="hide-mobile"
                   style={{ padding: '4px 10px', background: 'rgba(232,163,23,0.08)', border: '1px solid rgba(232,163,23,0.15)', borderRadius: 6, color: '#E8A317', cursor: 'pointer', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' }}>
                   <FiSend size={11} /> Shout
                 </button>
@@ -361,13 +401,15 @@ export default function KitchenDashboard() {
       {/* Bottom Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderTop: '1px solid rgba(232,163,23,0.12)', background: '#0d0a06' }} className="stack-mobile">
         <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-          <button className="btn btn-sm btn-secondary" style={{ flex: 1 }}><FiPrinter size={14}/> Print</button>
-          <button className="btn btn-sm btn-secondary" style={{ flex: 1 }}><MdPause size={14}/> Station</button>
+          <button className="btn btn-sm btn-secondary" style={{ flex: 1 }} onClick={() => window.print()}><FiPrinter size={14}/> Print Ticket</button>
+          <button className={`btn btn-sm ${isPaused ? 'btn-danger' : 'btn-secondary'}`} style={{ flex: 1 }} onClick={() => setIsPaused(!isPaused)}>
+            <MdPause size={14}/> {isPaused ? 'Station Paused' : 'Active'}
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'space-between' }}>
           <div className="hide-mobile" style={{ fontSize: '0.75rem', color: '#6B5E50' }}>ALPHA_01</div>
-          <button className="btn btn-sm btn-danger" style={{ flex: 1 }} onClick={() => orders.forEach(o => o.status === 'preparing' && updateStatus(o._id, 'ready'))}>
-            BUMP ALL
+          <button className="btn btn-sm btn-danger" style={{ flex: 1 }} onClick={bumpAll}>
+            BUMP ALL PREPARING
           </button>
         </div>
       </div>
