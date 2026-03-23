@@ -86,18 +86,7 @@ export default function Landing() {
               <FiArrowRight />
             </button>
 
-            {/* Browse Menu - Needs Restaurant ID */}
-            <button style={styles.portalBtn} onClick={() => {
-              const id = restaurantId || 'demo';
-              navigate(`/menu/${id}?table=1`);
-            }}>
-              <div style={styles.portalBtnIcon}><MdRestaurantMenu size={22} /></div>
-              <div style={styles.portalBtnText}>
-                <strong>Browse Menu</strong>
-                <span>Digital Menu for Customers</span>
-              </div>
-              <FiExternalLink />
-            </button>
+            {/* Management portals ONLY (Customer menu access via QR Code) */}
 
             <p style={styles.biometricNote}>
               🔒 Secure biometric login available on tablet apps
